@@ -121,7 +121,7 @@ def get_detections(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     min_frp: Optional[float] = Query(None, ge=0.0, description="Minimum FRP (MW)"),
-    daynight: Optional[str] = Query(None, regex="^[DNdn]$", description="D for Day, N for Night"),
+    daynight: Optional[str] = Query(None, pattern="^[DNdn]$", description="D for Day, N for Night"),
     min_lon: Optional[float] = None,
     min_lat: Optional[float] = None,
     max_lon: Optional[float] = None,
@@ -183,7 +183,7 @@ def get_persistent_sources(
                 "coordinates": [round(float(row["longitude"]), 5), round(float(row["latitude"]), 5)],
             },
             "properties": {
-                "source_cluster_id": int(row["source_cluster_id"]),
+                "source_cluster_id": str(row["source_cluster_id"]),
                 "dominant_class": dom_class,
                 "color": color,
                 "detection_count": int(row["detection_count"]),

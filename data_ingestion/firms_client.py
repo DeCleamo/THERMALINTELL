@@ -50,6 +50,14 @@ class FIRMSClient:
     # PUBLIC API
     # ----------------------------------------------------------------
 
+    def fetch_area(
+        self,
+        days: int = 1,
+        source: str = "VIIRS_SNPP_NRT",
+    ) -> pd.DataFrame:
+        """Alias for fetch_recent for area bounding box."""
+        return self.fetch_recent(source=source, day_range=days)
+
     def fetch_recent(
         self,
         source: str = "VIIRS_SNPP_NRT",

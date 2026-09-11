@@ -137,7 +137,7 @@ def run_pipeline(
     counts = classified_df["predicted_class"].value_counts()
     for cls_name, count in counts.items():
         pct = (count / len(classified_df)) * 100
-        print(f"  • {cls_name:<30}: {count:>6,} ({pct:>5.1f}%)")
+        print(f"  * {cls_name:<30}: {count:>6,} ({pct:>5.1f}%)")
 
     stats = db.get_statistics()
     print(f"\nTotal Records in Central GIS Store: {stats['total_detections']:,}")

@@ -132,10 +132,15 @@ class ThermalDatabase:
             self._df = new_df.copy()
         else:
             combined = pd.concat([self._df, new_df], ignore_index=True)
+            if "acq_date" in combined.columns:
+                combined["acq_date"] = combined["acq_date"].astype(str).str.split(" ").str[0]
             dedup_cols = [c for c in ["latitude", "longitude", "acq_date", "acq_time"] if c in combined.columns]
             if dedup_cols:
                 combined = combined.drop_duplicates(subset=dedup_cols, keep="last")
             self._df = combined
+
+        if "acq_date" in self._df.columns:
+            self._df["acq_date"] = self._df["acq_date"].astype(str).str.split(" ").str[0]
 
         if save_now:
             self.save()
@@ -243,8 +248,12 @@ class ThermalDatabase:
         max_frp = float(df["frp"].max()) if "frp" in df.columns else 0.0
 
         # Date range
-        date_min = str(df["acq_date"].min()) if "acq_date" in df.columns else None
-        date_max = str(df["acq_date"].max()) if "acq_date" in df.columns else None
+        date_min, date_max = None, None
+        if "acq_date" in df.columns and not df["acq_date"].empty:
+            dates = df["acq_date"].dropna().astype(str).str.split(" ").str[0]
+            if not dates.empty:
+                date_min = str(dates.min())
+                date_max = str(dates.max())
 
         # Persistent sources count
         persistent_count = 0
@@ -279,9 +288,29 @@ class ThermalDatabase:
         if self._df.empty or "source_cluster_id" not in self._df.columns:
             return pd.DataFrame()
 
-        df = self._df[self._df["source_cluster_id"] >= 0]
+        df = self._df.copy()
+        # Drop invalid or empty cluster ids
+        df = df[df["source_cluster_id"].notna()]
+        df = df[~df["source_cluster_id"].astype(str).isin(["", "-1", "-1.0", "nan", "None"])]
         if df.empty:
             return pd.DataFrame()
+
+        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
+        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
+        if "frp" in df.columns:
+            df["frp"] = pd.to_numeric(df["frp"], errors="coerce").fillna(0.0)
+        else:
+            df["frp"] = 0.0
+
+        if "prediction_confidence" in df.columns:
+            df["prediction_confidence"] = pd.to_numeric(df["prediction_confidence"], errors="coerce").fillna(0.5)
+        else:
+            df["prediction_confidence"] = 0.5
+
+        if "acq_date" in df.columns:
+            df["acq_date"] = df["acq_date"].astype(str).str.split(" ").str[0]
+        else:
+            df["acq_date"] = "2022-01-01"
 
         grouped = df.groupby("source_cluster_id").agg({
             "latitude": "mean",
