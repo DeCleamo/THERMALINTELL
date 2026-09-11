@@ -283,6 +283,55 @@ def fetch_firms_live(
     }
 
 
+@app.get("/api/detections/realtime")
+def get_realtime_detections(
+    days: int = Query(5, ge=1, le=5, description="Number of days to query (1-5)"),
+    source: str = Query("VIIRS_SNPP_NRT", description="Satellite data source"),
+):
+    """
+    Directly query NASA FIRMS URT for real-time detections, enrich with LandCover + OSM,
+    classify with XGBoost Model B, and return GeoJSON of ONLY the real-time anomalies.
+    """
+    logger.info(f"Querying real-time FIRMS detections: {days} days from {source}...")
+    try:
+        raw_df = firms_client.fetch_area(days=days, source=source)
+    except Exception as e:
+        logger.error(f"Real-time FIRMS fetch failed: {e}")
+        raise HTTPException(status_code=502, detail=f"NASA FIRMS API error: {str(e)}")
+
+    if raw_df.empty:
+        return {
+            "type": "FeatureCollection",
+            "features": [],
+            "metadata": {
+                "count": 0,
+                "days": days,
+                "source": source,
+                "message": f"0 active thermal anomalies detected in Jharkhand in the past {days} day(s).",
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        }
+
+    # Enrich with LandCover & OSM
+    enriched_df = landcover_enricher.enrich(raw_df)
+    enriched_df = osm_enricher.enrich(enriched_df)
+
+    # Classify with Model B
+    classified_df = classifier.classify_raw(enriched_df, historical_df=db._df)
+
+    # Convert to GeoJSON
+    geojson = db.to_geojson(classified_df)
+    geojson["metadata"] = {
+        "count": len(classified_df),
+        "days": days,
+        "source": source,
+        "class_summary": classified_df["predicted_class"].value_counts().to_dict(),
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": f"Successfully retrieved {len(classified_df)} real-time thermal anomalies from NASA FIRMS.",
+    }
+    return geojson
+
+
 @app.post("/api/classify-point")
 def classify_custom_point(req: CustomDetectionRequest):
     """

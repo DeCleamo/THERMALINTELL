@@ -24,6 +24,9 @@
         daynight: "ALL",
         isDrawerCollapsed: true,
         selectedDetection: null,
+        isRealtimeMode: false,
+        realtimeData: null,
+        realtimeDays: 5,
     };
 
     // Color definitions
@@ -438,9 +441,185 @@
     }
 
     /**
+     * Toggle Real-Time NASA FIRMS View
+     */
+    async function toggleRealtimeView(forceState) {
+        state.isRealtimeMode = forceState !== undefined ? forceState : !state.isRealtimeMode;
+        const btn = document.getElementById("btn-realtime-toggle");
+        const label = document.getElementById("realtime-btn-label");
+        const banner = document.getElementById("realtime-status-banner");
+        const bannerMsg = document.getElementById("realtime-banner-msg");
+
+        if (state.isRealtimeMode) {
+            btn.classList.add("active-live");
+            label.textContent = "🌐 Full Baseline";
+            banner.classList.remove("hidden");
+            bannerMsg.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Fetching live anomalies from NASA FIRMS API (last ${state.realtimeDays} days)...`;
+            showToast(`Connecting to real-time NASA FIRMS feed (${state.realtimeDays}d)...`, "info");
+
+            try {
+                const res = await fetch(`/api/detections/realtime?days=${state.realtimeDays}`);
+                const data = await res.json();
+                state.realtimeData = data;
+
+                const count = data.metadata ? data.metadata.count : (data.features ? data.features.length : 0);
+                if (count > 0) {
+                    bannerMsg.textContent = `Displaying ${count} live thermal anomalies detected in the last ${state.realtimeDays} days by VIIRS SNPP.`;
+                    showToast(`NASA FIRMS: ${count} live thermal anomalies found!`, "success");
+                } else {
+                    bannerMsg.textContent = `NASA FIRMS Scan: 0 active thermal anomalies in Jharkhand in the past ${state.realtimeDays} days (All clear / Monsoon conditions).`;
+                    showToast(`NASA FIRMS: 0 active anomalies in past ${state.realtimeDays} days.`, "info");
+                }
+
+                // Render real-time feed on map
+                renderRealtimeFeed(data);
+
+            } catch (err) {
+                console.error("Live feed fetch error:", err);
+                bannerMsg.textContent = "Error fetching live feed from NASA FIRMS API.";
+                showToast("Failed to fetch live NASA FIRMS feed", "error");
+            }
+        } else {
+            // Return to Full Baseline
+            btn.classList.remove("active-live");
+            label.textContent = "🔴 Live FIRMS Feed";
+            banner.classList.add("hidden");
+            showToast("Switched back to Full Baseline (31k anomalies)", "info");
+
+            // Restore baseline stats
+            if (state.statsData) {
+                document.getElementById("val-total-count").textContent = (state.statsData.total_detections || 0).toLocaleString();
+                document.getElementById("val-industrial-count").textContent = (state.statsData.by_class?.Industrial || 0).toLocaleString();
+                document.getElementById("val-forest-count").textContent = (state.statsData.by_class?.["Forest fire"] || 0).toLocaleString();
+                document.getElementById("val-quarry-count").textContent = (state.statsData.by_class?.["Quarry/Mining"] || 0).toLocaleString();
+                document.getElementById("val-agri-count").textContent = (state.statsData.by_class?.["Agricultural burning"] || 0).toLocaleString();
+                document.getElementById("val-max-frp").textContent = `${state.statsData.max_frp || 0} MW`;
+            }
+
+            applyFiltersAndRender();
+            if (state.sourcesLayer) state.sourcesLayer.addTo(state.map);
+        }
+    }
+
+    /**
+     * Render Real-Time Feed on Map
+     */
+    function renderRealtimeFeed(geojson) {
+        state.detectionsLayer.clearLayers();
+        if (state.heatLayer) {
+            state.map.removeLayer(state.heatLayer);
+            state.heatLayer = null;
+        }
+
+        const features = geojson.features || [];
+        const classCounts = {
+            "Industrial": 0,
+            "Forest fire": 0,
+            "Quarry/Mining": 0,
+            "Agricultural burning": 0,
+            "Vegetation fire (open/scrub)": 0,
+        };
+        let maxFrp = 0;
+        const latLngs = [];
+
+        features.forEach((feat) => {
+            const p = feat.properties;
+            const [lon, lat] = feat.geometry.coordinates;
+            latLngs.push([lat, lon]);
+
+            if (p.predicted_class && classCounts[p.predicted_class] !== undefined) {
+                classCounts[p.predicted_class]++;
+            }
+            if (p.frp && p.frp > maxFrp) {
+                maxFrp = p.frp;
+            }
+
+            const color = CLASS_COLORS[p.predicted_class] || "#ef4444";
+            const marker = L.circleMarker([lat, lon], {
+                radius: 8,
+                fillColor: color,
+                color: "#ffffff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.85,
+            });
+
+            const popupHtml = `
+                <div style="min-width: 210px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                        <span style="background:${color}; color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; text-transform:uppercase;">
+                            ${p.predicted_class}
+                        </span>
+                        <span style="background:rgba(239,68,68,0.2); color:#fca5a5; font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px;">
+                            LIVE URT
+                        </span>
+                    </div>
+                    <div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">
+                        <strong>Location:</strong> ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E
+                    </div>
+                    <div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">
+                        <strong>FRP:</strong> <span style="color:#f87171; font-weight:700;">${p.frp || 'N/A'} MW</span> | 
+                        <strong>TI4:</strong> ${p.bright_ti4 || 'N/A'} K
+                    </div>
+                    <div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">
+                        <strong>Confidence:</strong> ${(p.prediction_confidence * 100).toFixed(1)}%
+                    </div>
+                    <div style="font-size:10px; color:#94a3b8; margin-top:6px; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;">
+                        ${p.acq_date || 'Today'} ${p.acq_time ? '(' + p.acq_time + ' UTC)' : ''} • Satellite: VIIRS
+                    </div>
+                </div>
+            `;
+
+            marker.bindPopup(popupHtml, { closeButton: true });
+            marker.on("click", () => {
+                showDetectionDetails({ ...p, latitude: lat, longitude: lon });
+            });
+
+            state.detectionsLayer.addLayer(marker);
+        });
+
+        // Update KPI Ticker with Real-Time Values
+        document.getElementById("val-total-count").textContent = features.length.toLocaleString();
+        document.getElementById("val-industrial-count").textContent = classCounts["Industrial"].toLocaleString();
+        document.getElementById("val-forest-count").textContent = classCounts["Forest fire"].toLocaleString();
+        document.getElementById("val-quarry-count").textContent = classCounts["Quarry/Mining"].toLocaleString();
+        document.getElementById("val-agri-count").textContent = classCounts["Agricultural burning"].toLocaleString();
+        document.getElementById("val-max-frp").textContent = `${maxFrp.toFixed(1)} MW`;
+
+        document.getElementById("rendered-features-count").textContent = `${features.length} real-time items rendered`;
+
+        // Fit map bounds if points present
+        if (latLngs.length > 0) {
+            state.map.fitBounds(L.latLngBounds(latLngs), { padding: [50, 50], maxZoom: 11 });
+        }
+    }
+
+    /**
      * UI Event Listeners
      */
     function initUIEventListeners() {
+        // Real-Time Live Feed Toggle Button
+        const realtimeBtn = document.getElementById("btn-realtime-toggle");
+        if (realtimeBtn) {
+            realtimeBtn.addEventListener("click", () => toggleRealtimeView());
+        }
+
+        const exitRealtimeBtn = document.getElementById("btn-exit-realtime");
+        if (exitRealtimeBtn) {
+            exitRealtimeBtn.addEventListener("click", () => toggleRealtimeView(false));
+        }
+
+        const realtimeDaysBtn = document.getElementById("btn-realtime-days-toggle");
+        if (realtimeDaysBtn) {
+            realtimeDaysBtn.addEventListener("click", () => {
+                state.realtimeDays = state.realtimeDays === 1 ? 5 : (state.realtimeDays === 5 ? 2 : 1);
+                document.getElementById("label-realtime-days").textContent = `${state.realtimeDays} Day${state.realtimeDays > 1 ? 's' : ''} Window`;
+                if (state.isRealtimeMode) {
+                    toggleRealtimeView(true);
+                }
+            });
+        }
+
         // Class Checkbox Toggles
         document.querySelectorAll(".sidebar-content input[type='checkbox'][data-class]").forEach((cb) => {
             cb.addEventListener("change", () => {

@@ -84,7 +84,11 @@
             </div>
 
             <div class="navbar-right">
-                <button id="btn-fetch-firms" class="btn btn-primary glow-btn" title="Query NASA FIRMS Real-time URT API">
+                <button id="btn-realtime-toggle" class="btn btn-live-mode" title="View Real-Time NASA FIRMS Live Thermal Anomalies">
+                    <span class="live-pulse-dot"></span>
+                    <span id="realtime-btn-label">🔴 Live FIRMS Feed</span>
+                </button>
+                <button id="btn-fetch-firms" class="btn btn-primary glow-btn" title="Sync & Ingest NASA FIRMS Real-time URT API">
                     <i class="fa-solid fa-satellite-dish"></i>
                     <span>Sync NASA FIRMS</span>
                 </button>
@@ -291,6 +295,25 @@
             <!-- Center Interactive Map -->
             <div id="map-viewport" class="map-viewport">
                 <div id="gis-map" class="gis-map"></div>
+
+                <!-- Live Feed Indicator Banner -->
+                <div id="realtime-status-banner" class="realtime-status-banner glass-card hidden">
+                    <div class="banner-content">
+                        <span class="live-pulse-dot"></span>
+                        <div class="banner-text">
+                            <span class="banner-badge">🛰️ LIVE NASA FIRMS</span>
+                            <span id="realtime-banner-msg">Fetching real-time VIIRS anomalies...</span>
+                        </div>
+                    </div>
+                    <div class="banner-actions">
+                        <button id="btn-realtime-days-toggle" class="btn btn-glass btn-xs" title="Change day window">
+                            <i class="fa-solid fa-clock-rotate-left"></i> <span id="label-realtime-days">5 Days Window</span>
+                        </button>
+                        <button id="btn-exit-realtime" class="btn btn-primary btn-xs">
+                            <i class="fa-solid fa-layer-group"></i> Full Baseline
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Map Overlay Floating Legend -->
                 <div id="map-floating-legend" class="map-floating-legend glass-card">

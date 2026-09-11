@@ -1340,3 +1340,101 @@ input[type="range"]::-webkit-slider-thumb:hover {
     50% { r: 12; opacity: 0.4; }
     100% { r: 6; opacity: 1; }
 }
+
+/* Live Feed Button & Indicator */
+.btn-live-mode {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-live-mode:hover {
+    background: rgba(239, 68, 68, 0.28);
+    border-color: #ef4444;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-live-mode.active-live {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    border-color: #f87171;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+}
+
+.live-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px #ef4444;
+    animation: live-blinker 1.2s infinite;
+}
+
+@keyframes live-blinker {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Floating Realtime Status Banner */
+.realtime-status-banner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 650;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    border-radius: var(--radius-full);
+}
+
+.realtime-status-banner.hidden {
+    display: none;
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.banner-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ef4444;
+    letter-spacing: 0.5px;
+}
+
+#realtime-banner-msg {
+    font-size: 11px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-xs {
+    padding: 4px 10px;
+    font-size: 11px;
+    border-radius: var(--radius-full);
+}
+
