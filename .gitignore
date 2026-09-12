@@ -16,8 +16,9 @@ env/
 *.env
 !nasa.env
 
-# Data files (too large for git)
-*.tif
+# Large raster files (tracked via Git LFS)
+# *.tif
+!jharkhand_landcover.tif
 *.csv
 *.json
 !config.py
