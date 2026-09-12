@@ -10,6 +10,7 @@ build/
 
 # Virtual Environment
 venv/
+venv_mac/
 env/
 .env
 *.env
@@ -24,6 +25,8 @@ env/
 
 # Keep model metadata
 !jharkhand_viirs_MODEL_B_metadata.json
+# Keep XGBoost model (needed for deployment)
+!jharkhand_viirs_MODEL_B.json
 
 # GeoJSON data (large)
 export.geojson

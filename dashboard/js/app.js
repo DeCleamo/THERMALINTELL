@@ -1,5 +1,5 @@
 /**
- * AGNI-VISION — Main GIS Dashboard Application
+ * THERMALINTELL — Main GIS Dashboard Application
  * Leaflet.js + NASA FIRMS + XGBoost Model B Integration
  */
 
@@ -10,7 +10,7 @@
     const state = {
         map: null,
         baseLayers: {},
-        currentBaseLayer: "dark",
+        currentBaseLayer: "satellite",
         detectionsLayer: null,
         heatLayer: null,
         sourcesLayer: null,
@@ -94,7 +94,7 @@
         });
 
         // Set default basemap
-        state.baseLayers.dark.addTo(state.map);
+        state.baseLayers.satellite.addTo(state.map);
 
         // Initialize Layer Groups
         state.detectionsLayer = L.layerGroup().addTo(state.map);

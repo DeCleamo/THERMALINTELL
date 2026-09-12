@@ -1,5 +1,5 @@
 /**
- * AGNI-VISION — GIS Analytics & Charts Module
+ * THERMALINTELL — GIS Analytics & Charts Module
  * Powered by Chart.js 4.x
  */
 
