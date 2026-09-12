@@ -27,9 +27,16 @@ env/
 !jharkhand_viirs_MODEL_B_metadata.json
 # Keep XGBoost model (needed for deployment)
 !jharkhand_viirs_MODEL_B.json
+# Keep prediction CSVs (needed to seed database)
+!jh_viirs_2022_test_predictions_MODEL_B.csv
+!jh_viirs_2022_unclassified_CLASSIFIED_MODEL_B.csv
+# Keep model reports
+!xgboost_model_B_2022_classification_report.csv
+!xgboost_model_B_feature_importance.csv
+!xgboost_model_B_prediction_distribution.csv
 
-# GeoJSON data (large)
-export.geojson
+# Keep OSM GeoJSON (needed for map overlay)
+!export.geojson
 
 # IDE
 .vscode/
